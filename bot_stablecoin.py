@@ -72,12 +72,16 @@ while True:
                 if price_ask <= 1 - spread:
                     # buy asset
                     response = client.marketBuy(symbol, assetQ)
+                    break
+                sleep(1)
         elif assetB !=0:
             while True:
                 price_bid, coinQ, asset_total = mean_bids_price(coinB,assetB,client.rOrderBook(symbol,10,'bids'))
                 if price_bid >= 1 + spread:
                     # sell asset
                     response = client.marketSell(symbol, asset_total)
+                    break
+                sleep(1)
         # trade history
         data = open('trade_history.txt','a+')
         data.write(f'{response}\n')
