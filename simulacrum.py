@@ -74,6 +74,8 @@ while True:
                     # buy asset
                     coinB -= coin_total
                     assetB += assetQ * (1 - taker)
+                    break
+                sleep(1)
         elif assetB !=0:
             while True:
                 price_bid, coinQ, asset_total = mean_bids_price(coinB,assetB,client.rOrderBook(symbol,10,'bids'))
@@ -81,6 +83,8 @@ while True:
                     # sell asset
                     coinB += coinQ * (1 - taker)
                     assetB -= asset_total
+                    break
+                sleep(1)
     except KeyboardInterrupt:
         print('\nSTOPED BY USER')
         break
