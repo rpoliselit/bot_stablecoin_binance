@@ -13,36 +13,27 @@ class binance:
         self.APIkey = APIkey
         self.Secret = Secret
 
+    async def response_status(self, response):
+        if response.status == 200:
+            return await response.json()
+        elif response.status == 400:
+            error = await response.json()
+            print(f"Error{error['code']}: {error['msg']}")
+        else:
+            print(response.status)
+            print(await response.text())
+
     async def request(self, type, url, params, headers={}):
         async with aiohttp.ClientSession() as session:
             if type == 'GET':
-                async with session.get(url, params=params, headers=headers) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        print(response.status)
-                        print(await response.text())
+                resp = await session.get(url, params=params, headers=headers)
             elif type == 'POST':
-                async with session.post(url, params=params, headers=headers) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        print(response.status)
-                        print(await response.text())
+                resp = await session.post(url, params=params, headers=headers)
             elif type == 'DELETE':
-                async with session.delete(url, params=params, headers=headers) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        print(response.status)
-                        print(await response.text())
+                resp = await session.delete(url, params=params, headers=headers)
             elif type == 'PUT':
-                async with session.put(url, params=params, headers=headers) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        print(response.status)
-                        print(await response.text())
+                resp = await session.put(url, params=params, headers=headers)
+            return await self.response_status(resp)
 
     def api_query(self,command, params={}, reqType=None, privateAPI=False, signed=False):
 
@@ -162,7 +153,7 @@ class binance:
         :field (optional): 'balances', 'makerCommission', 'takerCommission', 'buyerCommission', 'sellerCommission', 'canTrade', 'canWithdraw', 'canDeposit', 'updateTime', and 'accountType'.
         """
         x = self.api_query('/account', privateAPI=True, signed=True, reqType='GET')
-        if field is not None:
+        if field is not None and x is not None:
             x = x[field]
         return x
 
@@ -173,7 +164,7 @@ class binance:
         :status (default=free): 'asset' confirms our currency, 'free' and 'locked' amount of the given asset.
         """
         x = self.aInfo('balances')
-        if asset is not None:
+        if asset is not None and x is not None:
             for c, k in enumerate(x):
                 if k['asset'] == asset and status in {'free', 'locked'}:
                     balance = float(x[c][status])
