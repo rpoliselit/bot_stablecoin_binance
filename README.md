@@ -1,2 +1,2 @@
 # bot_stablecoion_binance
-Automated arbitration of stable coins on the Binance exchange.
+Automated arbitration of stable coins (TUSD/USDT) on the Binance exchange.
