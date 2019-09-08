@@ -46,21 +46,21 @@ def get_balance(coin, asset, balance):
 
 def monitor(*args):
     print(f"{ctime():-^35}")
-    print(f"Binance {coin}: {coinB:.5f} {asset}: {assetB:.5f}")
+    print(f"Binance {coin}: {coinB:.2f} {asset}: {assetB:.2f}")
 
 # binance client
 client = binance(keys.binance_apikey, keys.binance_secret)
 taker = 0.1 / 100
 
 # currency pair of stable coin
-coin = 'TUSD'
-asset = 'USDC'
+coin = 'USDT'
+asset = 'TUSD'
 symbol = f'{asset}{coin}'
 
 # define spread
-spread = 0.2 / 100
+spread = 0.15 / 100
 
-# trade
+#trade
 while True:
     try:
         # check balances
@@ -69,7 +69,7 @@ while True:
         if coinB != 0:
             while True:
                 price_ask, assetQ, coin_total = mean_asks_price(coinB,assetB,client.rOrderBook(symbol,10,'asks'))
-                if price_ask <= 1 - spread:
+                if price_ask < 1 - spread:
                     # buy asset
                     response = client.marketBuy(symbol, assetQ)
                     break
@@ -77,7 +77,7 @@ while True:
         elif assetB !=0:
             while True:
                 price_bid, coinQ, asset_total = mean_bids_price(coinB,assetB,client.rOrderBook(symbol,10,'bids'))
-                if price_bid >= 1 + spread:
+                if price_bid > 1 + spread:
                     # sell asset
                     response = client.marketSell(symbol, asset_total)
                     break

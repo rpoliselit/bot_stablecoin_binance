@@ -53,12 +53,12 @@ client = binance(keys.binance_apikey, keys.binance_secret)
 taker = 0.1 / 100
 
 # currency pair of stable coin
-coin = 'TUSD'
-asset = 'USDC'
+coin = 'USDT'
+asset = 'TUSD'
 symbol = f'{asset}{coin}'
 
 # define spread
-spread = 0.2 / 100
+spread = 0.15 / 100
 
 # define initial balance
 coinB, assetB = 100.0, 0
@@ -70,7 +70,7 @@ while True:
         if coinB != 0:
             while True:
                 price_ask, assetQ, coin_total = mean_asks_price(coinB,assetB,client.rOrderBook(symbol,10,'asks'))
-                if price_ask <= 1 - spread:
+                if price_ask < 1 - spread:
                     # buy asset
                     coinB -= coin_total
                     assetB += assetQ * (1 - taker)
@@ -79,7 +79,7 @@ while True:
         elif assetB !=0:
             while True:
                 price_bid, coinQ, asset_total = mean_bids_price(coinB,assetB,client.rOrderBook(symbol,10,'bids'))
-                if price_bid >= 1 + spread:
+                if price_bid > 1 + spread:
                     # sell asset
                     coinB += coinQ * (1 - taker)
                     assetB -= asset_total
@@ -90,3 +90,7 @@ while True:
         break
     except Exception as e:
         print(str(e))
+
+"""
+mudar o spread para a ultima compra
+"""
