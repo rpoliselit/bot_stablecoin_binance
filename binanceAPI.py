@@ -157,7 +157,7 @@ class binance:
         Get current account information.
         :field (optional): 'balances', 'makerCommission', 'takerCommission', 'buyerCommission', 'sellerCommission', 'canTrade', 'canWithdraw', 'canDeposit', 'updateTime', and 'accountType'.
         """
-        x = self.api_query('/account', privateAPI=True, signed=True, reqType='GET')
+        x = self.api_query('/account', params={}, privateAPI=True, signed=True, reqType='GET')
         if field is not None and x is not None:
             x = x[field]
         return x
