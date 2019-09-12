@@ -83,8 +83,7 @@ class binance:
         """
         Current exchange trading rules and symbol information.
         """
-        x = self.api_query('/exchangeInfo')
-        return json.dumps(x, indent=1)
+        return self.api_query('/exchangeInfo')
 
     def rPrice(self, currencyPair):
         """
