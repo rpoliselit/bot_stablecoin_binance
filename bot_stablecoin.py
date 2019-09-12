@@ -44,7 +44,12 @@ def get_balance(coin, asset, balance):
             assetB_bin = float(k['free'])
     return coinB_bin, assetB_bin
 
+def lot_size(assetQ, stepSize):
+    fix_size = assetQ % stepSize
+    return assetQ - fix_size
+
 def monitor(*args):
+    print(f"{' bot_stablecoin_binance ':-^35}")
     print(f"{ctime():-^35}")
     print(f"Binance {coin}: {coinB:.2f} {asset}: {assetB:.2f}")
 
@@ -57,8 +62,19 @@ coin = 'USDT'
 asset = 'TUSD'
 symbol = f'{asset}{coin}'
 
-# define spread
-spread = 0.15 / 100
+# check lot_size
+symbols = client.eInfo()['symbols']
+for k in symbols:
+    if k['symbol'] == 'TUSDUSDT':
+        for j in k['filters']:
+            if j['filterType'] == 'LOT_SIZE':
+                minQty = float(j['minQty'])
+                maxQty = float(j['maxQty'])
+                stepSize = float(j['stepSize'])
+
+# define spread and last price
+spread = taker
+last_price = 0.9988
 
 #trade
 while True:
@@ -66,27 +82,33 @@ while True:
         # check balances
         coinB, assetB = get_balance(coin,asset, client.rBalances())
         monitor(coin,asset,coinB,assetB)
-        if coinB != 0:
+        if coinB > assetB:
             while True:
                 price_ask, assetQ, coin_total = mean_asks_price(coinB,assetB,client.rOrderBook(symbol,10,'asks'))
-                if price_ask < 1 - spread:
+                if price_ask < last_price and assetQ * (1 - spread) > coinB:
                     # buy asset
-                    response = client.marketBuy(symbol, assetQ)
+                    fixQ = lot_size(assetQ, stepSize)
+                    response = client.marketBuy(symbol, fixQ)
+                    last_price = price_ask
                     break
                 sleep(1)
-        elif assetB !=0:
+        elif assetB > coinB:
             while True:
                 price_bid, coinQ, asset_total = mean_bids_price(coinB,assetB,client.rOrderBook(symbol,10,'bids'))
-                if price_bid > 1 + spread:
+                if price_bid > last_price and coinQ * (1 - spread) > assetB:
                     # sell asset
-                    response = client.marketSell(symbol, asset_total)
+                    fixQ = lot_size(asset_total, stepSize)
+                    response = client.marketSell(symbol, fixQ)
+                    last_price = price_bid
                     break
                 sleep(1)
         # trade history
-        data = open('trade_history.txt','a+')
-        data.write(f'{response}\n')
+        if response is not None:
+            data = open('trade_history.txt','a+')
+            data.write(f'{response}\n')
     except KeyboardInterrupt:
         print('\nSTOPED BY USER')
+        print(last_price)
         break
     except Exception as e:
         print(str(e))
