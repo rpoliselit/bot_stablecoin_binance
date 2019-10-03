@@ -39,29 +39,29 @@ class binance:
                 resp = await session.put(url, params=params, headers=headers)
             return await self.response_status(resp)
 
-    def api_query(self,command, params={}, reqType=None, privateAPI=False, signed=False):
+    def api_query(self,command, params={}, request_type=None, private_api=False, signed=False):
 
-        urlAPI = 'https://api.binance.com/api'
-        urlPublic = urlAPI + '/v1'
-        urlPrivate = urlAPI + '/v3'
+        url_api = 'https://api.binance.com/api'
+        url_public = url_api + '/v1'
+        url_private = url_api + '/v3'
         list1 = ('/ping', '/time', '/exchangeInfo')
         timestamp = int(time.time()*1000)
         recvWindow = 5000
-        if privateAPI == False:
-            url = urlPublic + command
+        if private_api == False:
+            url = url_public + command
             ret = self.request('GET', url, params=params)
-        elif privateAPI == True and signed == False:
-            url = urlPrivate + command
+        elif private_api == True and signed == False:
+            url = url_private + command
             ret = self.request('GET', url, params=params)
         elif signed == True:
-            url = urlPrivate + command
+            url = url_private + command
             params['timestamp'] = timestamp
             params['recvWindow'] = recvWindow
             query_string = urlencode(params)
             sign = hmac.new(self.Secret.encode('UTF-8'), query_string.encode('UTF-8'), hashlib.sha256)
             params['signature'] = sign.hexdigest()
             headers = {'X-MBX-APIKEY': self.APIkey}
-            ret = self.request(reqType, url, params=params, headers=headers)
+            ret = self.request(request_type, url, params=params, headers=headers)
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(ret)
 
@@ -85,12 +85,12 @@ class binance:
         """
         return self.api_query('/exchangeInfo')
 
-    def rPrice(self, currencyPair):
+    def rPrice(self, currency_pair):
         """
         Latest price for a symbol or symbols.
-        :currencyPair: The currency pair, e.q. 'LTCBTC'.
+        :currency_pair: The currency pair, e.q. 'LTCBTC'.
         """
-        params = {'symbol': currencyPair}
+        params = {'symbol': currency_pair}
         x = self.api_query('/ticker/price', params=params)
         return float(x['price'])
 
@@ -100,16 +100,16 @@ class binance:
         """
         return self.api_query('/ticker/allPrices')
 
-    def rOrderBook(self, currencyPair, depth=5, field=None):
+    def rOrderBook(self, currency_pair, depth=5, field=None):
         """
         Returns the order book for a given market.
-        :currencyPair: The currency pair, e.q. 'LTCBTC'.
+        :currency_pair: The currency pair, e.q. 'LTCBTC'.
         :depth (default = 5): weight limit.
         :field (optional): Information from a specific field, such as 'lastUpdatedId', 'bids', 'asks'.
         Caution: setting limit=0 can return a lot of data.
         """
         params = {
-            'symbol': currencyPair,
+            'symbol': currency_pair,
             'limit': depth
         }
         x = self.api_query('/depth', params=params)
@@ -125,26 +125,26 @@ class binance:
 
 
 #2-PRIVATE API METHODS
-    def order(self, reqType, currencyPair=None, orderId=None, origClientOrderId=None, params={}):
+    def order(self, request_type, currency_pair=None, order_id=None, orig_client_order_id=None, params={}):
         """
         Create order of any kind, i.e. buy, sell, cancel, status, and so on.
-        :currencyPair: The currency pair, e.q. 'LTCBTC'.
-        :orderId: a given order ID.
-        :origClientOrderId:
+        :currency_pair: The currency pair, e.q. 'LTCBTC'.
+        :order_id: a given order ID.
+        :orig_client_order_id:
         """
-        if currencyPair is not None:
-            params['symbol'] = currencyPair
-        if orderId is not None:
-            params['orderId'] = orderId
-        if origClientOrderId is not None:
-            params['origClientOrderId'] = origClientOrderId
-        return self.api_query('/order',privateAPI=True,signed=True,reqType=reqType,params=params)
+        if currency_pair is not None:
+            params['symbol'] = currency_pair
+        if order_id is not None:
+            params['orderId'] = order_id
+        if orig_client_order_id is not None:
+            params['origClientOrderId'] = orig_client_order_id
+        return self.api_query('/order',private_api=True,signed=True,request_type=request_type,params=params)
 
 
     #2.1-requests GET
-    def bookTicker(self, currencyPair, field=None):
-        params = {'symbol': currencyPair}
-        x = self.api_query('/ticker/bookTicker', params=params, privateAPI=True)
+    def bookTicker(self, currency_pair, field=None):
+        params = {'symbol': currency_pair}
+        x = self.api_query('/ticker/bookTicker', params=params, private_api=True)
         if field is not None:
             x = x[field]
             if field != 'symbol':
@@ -156,7 +156,7 @@ class binance:
         Get current account information.
         :field (optional): 'balances', 'makerCommission', 'takerCommission', 'buyerCommission', 'sellerCommission', 'canTrade', 'canWithdraw', 'canDeposit', 'updateTime', and 'accountType'.
         """
-        x = self.api_query('/account', params={}, privateAPI=True, signed=True, reqType='GET')
+        x = self.api_query('/account', params={}, private_api=True, signed=True, request_type='GET')
         if field is not None and x is not None:
             x = x[field]
         return x
@@ -178,56 +178,56 @@ class binance:
             balance = x
         return balance
 
-    def orderStatus(self, currencyPair, orderId, origClientOrderId):
+    def orderStatus(self, currency_pair, order_id, orig_client_order_id):
         """
         Check an order's status.
         NOTE: check 'order' method in help.
         """
-        return self.order(currencyPair,'GET', orderId=orderId, origClientOrderId=origClientOrderId)
+        return self.order(currency_pair,'GET', order_id=order_id, orig_client_order_id=orig_client_order_id)
 
-    def openOrders(self,currencyPair=None):
+    def openOrders(self,currency_pair=None):
         params = {}
-        if currencyPair is not None:
-            params['symbol'] = currencyPair
-        return self.api_query('/openOrders',privateAPI=True,signed=True,reqType='GET',params=params)
+        if currency_pair is not None:
+            params['symbol'] = currency_pair
+        return self.api_query('/openOrders',private_api=True,signed=True,request_type='GET',params=params)
 
-    def allOrders(self, currencyPair, orderId=None, start=None, end=None):
+    def allOrders(self, currency_pair, order_id=None, start=None, end=None):
         """
         Get all account orders; active, canceled, or filled.
-        :currencyPair: The currency pair, e.q. 'LTCBTC'.
-        :orderId (optional): a given order ID.
+        :currency_pair: The currency pair, e.q. 'LTCBTC'.
+        :order_id (optional): a given order ID.
         :start (optional): start time.
         :end (optional): end time.
         """
-        params = {'symbol':currencyPair}
-        if orderId is not None:
-            params['orderId'] = orderId
+        params = {'symbol':currency_pair}
+        if order_id is not None:
+            params['orderId'] = order_id
         if start is not None:
             params['startTime'] = start
         if end is not None:
             params['endTime'] = end
-        return self.api_query('/allOrders',privateAPI=True,signed=True,reqType='GET',params=params)
+        return self.api_query('/allOrders',private_api=True,signed=True,request_type='GET',params=params)
 
-    def myTrades(self, currencyPair, start=None, end=None,):
+    def myTrades(self, currency_pair, start=None, end=None,):
         """
         Get trades for a specific account and symbol.
-        :currencyPair: The currency pair, e.q. 'LTCBTC'.
+        :currency_pair: The currency pair, e.q. 'LTCBTC'.
         :start (optional): start time.
         :end (optional): end time.
         """
-        params = {'symbol':currencyPair}
+        params = {'symbol':currency_pair}
         if startT is not None:
             params['startTime'] = start
         if endT is not None:
             params['endTime'] = end
-        return self.api_query('/myTrades',privateAPI=True,signed=True,reqType='GET',params=params)
+        return self.api_query('/myTrades',private_api=True,signed=True,request_type='GET',params=params)
 
 
     #2.2-requests POST
-    def testOrder(self, currencyPair, side, type, quantity, timeInForce=None, price=None, stopPrice=None, icebergQty=None, newOrderRespType=None):
+    def testOrder(self, currency_pair, side, type, quantity, timeInForce=None, price=None, stopPrice=None, icebergQty=None, newOrderRespType=None):
         """
         Test new order creation and signature/recvWindow long. Creates and validates a new order but does not send it into the matching engine.
-        :currencyPair: The currency pair, e.q. 'LTCBTC'.
+        :currency_pair: The currency pair, e.q. 'LTCBTC'.
         :side: BUY or SELL.
         :type: LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER.
         :quantity (decimal value): Quantity of the given asset.
@@ -238,7 +238,7 @@ class binance:
         :newOrderRespType: Set the response JSON. ACK, RESULT, or FULL; MARKET and LIMIT order types default to FULL, all other orders default to ACK.
         """
         params = {
-            'symbol': currencyPair,
+            'symbol': currency_pair,
             'side' : side,
             'type' : type,
             'quantity' : str(quantity),
@@ -253,12 +253,12 @@ class binance:
             params['icebergQty'] = str(icebergQty)
         if newOrderRespType is not None:
             params['newOrderRespType'] = newOrderRespType
-        return self.api_query('/order/test',privateAPI=True,signed=True,reqType='POST',params=params)
+        return self.api_query('/order/test',private_api=True,signed=True,request_type='POST',params=params)
 
-    def newOrder(self, currencyPair, side, type, quantity, timeInForce=None, price=None, stopPrice=None, icebergQty=None, newOrderRespType=None):
+    def newOrder(self, currency_pair, side, type, quantity, timeInForce=None, price=None, stopPrice=None, icebergQty=None, newOrderRespType=None):
         """
         Send in a new order.
-        :currencyPair: The currency pair, e.q. 'LTCBTC'.
+        :currency_pair: The currency pair, e.q. 'LTCBTC'.
         :side: BUY or SELL.
         :type: LIMIT, MARKET, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER.
         :quantity (decimal value): Quantity of the given asset.
@@ -290,7 +290,7 @@ class binance:
         NOTE: check 'order' method in help.
         """
         params = {
-            'symbol': currencyPair,
+            'symbol': currency_pair,
             'side' : side,
             'type' : type,
             'quantity' : str(quantity),
@@ -309,52 +309,52 @@ class binance:
 
 
     #2.2.1-MARKET ORDERS
-    def marketBuy(self, currencyPair, quantity):
+    def marketBuy(self, currency_pair, quantity):
         """
         Send a new MARKET order to buy.
-        :currencyPair:
+        :currency_pair:
         :quantity:
         NOTE: check 'newOrder' method in help.
         """
-        return self.newOrder(currencyPair,'BUY','MARKET', quantity)
+        return self.newOrder(currency_pair,'BUY','MARKET', quantity)
 
-    def marketSell(self, currencyPair, quantity):
+    def marketSell(self, currency_pair, quantity):
         """
         Send a new MARKET order to sell.
-        :currencyPair:
+        :currency_pair:
         :quantity:
         NOTE: check 'newOrder' method in help.
         """
-        return self.newOrder(currencyPair,'SELL','MARKET', quantity)
+        return self.newOrder(currency_pair,'SELL','MARKET', quantity)
 
-    def stopLossBuy(self, currencyPair, quantity, stopPrice):
+    def stopLossBuy(self, currency_pair, quantity, stopPrice):
         """
         Send a new STOP_LOSS order to buy.
-        :currencyPair:
+        :currency_pair:
         :quantity:
         :stopPrice:
         NOTE: check 'newOrder' method in help.
         """
-        return self.newOrder(currencyPair,'BUY','STOP_LOSS',quantity,stopPrice)
+        return self.newOrder(currency_pair,'BUY','STOP_LOSS',quantity,stopPrice)
 
-    def stopLossSell(self, currencyPair, quantity, stopPrice):
+    def stopLossSell(self, currency_pair, quantity, stopPrice):
         """
         Send a new STOP_LOSS order to sell.
-        :currencyPair:
+        :currency_pair:
         :quantity:
         :stopPrice:
         NOTE: check 'newOrder' method in help.
         """
-        return self.newOrder(currencyPair,'SELL','STOP_LOSS',quantity,stopPrice)
+        return self.newOrder(currency_pair,'SELL','STOP_LOSS',quantity,stopPrice)
 
 
     #2.3-requests DELETE
-    def cancelOrder(self, currencyPair, orderId, origClientOrderId):
+    def cancelOrder(self, currency_pair, order_id, orig_client_order_id):
         """
         Cancel an active order.
         NOTE: check 'order' method in help.
         """
-        return self.order(currencyPair, orderId, origClientOrderId, reqType='DELETE')
+        return self.order(currency_pair, order_id, orig_client_order_id, request_type='DELETE')
 
 
     #2.4-requests PUT

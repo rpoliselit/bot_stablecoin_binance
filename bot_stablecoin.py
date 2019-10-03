@@ -1,62 +1,63 @@
 from time import sleep, ctime
-from binanceAPI import binance
+from binance_api import binance
 import keys
 
-def mean_asks_price(coinQ, assetQ, asks):
+def mean_asks_price(coin_qty, asset_qty, asks):
     try:
-        coinQ_init = coinQ
+        coin_init = coin_qty
         for c in asks:
-            if coinQ > c[0] * c[1]:
-                coinQ -= c[0] * c[1]
-                assetQ += c[1]
-            if coinQ < c[0] * c[1]:
-                assetQ += coinQ / c[0]
-                coinQ -= coinQ
-            if coinQ == 0:
+            if coin_qty > c[0] * c[1]:
+                coin_qty -= c[0] * c[1]
+                asset_qty += c[1]
+            if coin_qty < c[0] * c[1]:
+                asset_qty += coin_qty / c[0]
+                coin_qty -= coin_qty
+            if coin_qty == 0:
                 break
     except:
         print(asks)
     else:
-        return coinQ_init / assetQ, assetQ, coinQ_init
+        return coin_init / asset_qty, asset_qty, coin_init
 
-def mean_bids_price(coinQ, assetQ, bids):
+def mean_bids_price(coin_qty, asset_qty, bids):
     try:
-        assetQ_init = assetQ
+        asset_init = asset_qty
         for c in bids:
-            if assetQ > c[1]:
-                assetQ -= c[1]
-                coinQ += c[0] * c[1]
-            if assetQ < c[1]:
-                coinQ += c[0] * assetQ
-                assetQ -= assetQ
-            if assetQ == 0:
+            if asset_qty > c[1]:
+                asset_qty -= c[1]
+                coin_qty += c[0] * c[1]
+            if asset_qty < c[1]:
+                coin_qty += c[0] * asset_qty
+                asset_qty -= asset_qty
+            if asset_qty == 0:
                 break
     except:
         print(bids)
     else:
-        return coinQ / assetQ_init, coinQ, assetQ_init
+        return coin_qty / asset_init, coin_qty, asset_init
 
 def get_balance(coin, asset, balance):
     for c, k in enumerate(balance):
         if k['asset'] == coin:
-            coinB_bin = float(k['free'])
+            coin_bal_bin = float(k['free'])
         elif k['asset'] == asset:
-            assetB_bin = float(k['free'])
-    return coinB_bin, assetB_bin
+            asset_bal_bin = float(k['free'])
+    return coin_bal_bin, asset_bal_bin
 
 def truncate(num, decimal=0):
     from math import floor
     decimal = 10 ** decimal
     return floor(num * decimal) / decimal
 
-def lot_size(assetQ, stepSize):
-    fix_size = assetQ % stepSize
-    return truncate(assetQ - fix_size, 5)
+def lot_size(asset_qty, step_size):
+    fix_size = asset_qty % step_size
+    return truncate(asset_qty - fix_size, 5)
 
 def monitor(*args):
     print(f"{' bot_stablecoin_binance ':-^35}")
     print(f"{ctime():-^35}")
-    print(f"Binance {coin}: {coinB:.8f} {asset}: {assetB:.8f}")
+    print(f"Binance {coin}: {coin_bal:.8f} {asset}: {asset_bal:.8f}")
+
 
 # binance client
 client = binance(keys.binance_apikey, keys.binance_secret)
@@ -73,36 +74,38 @@ for k in symbols:
     if k['symbol'] == symbol:
         for j in k['filters']:
             if j['filterType'] == 'LOT_SIZE':
-                minQty = float(j['minQty'])
-                maxQty = float(j['maxQty'])
-                stepSize = float(j['stepSize'])
+                min_qty = float(j['minQty'])
+                max_qty = float(j['maxQty'])
+                step_size = float(j['stepSize'])
+s
 
 # define spread
 spread = taker * 1.1
 lastprice = 1
-#trade
+
+# automated trade
 while True:
     try:
         # check balances
-        coinB, assetB = get_balance(coin,asset, client.rBalances())
-        monitor(coin,asset,coinB,assetB)
-        if coinB > assetB:
+        coin_bal, asset_bal = get_balance(coin, asset, client.rBalances())
+        monitor(coin,asset,coin_bal,asset_bal)
+        if coin_bal > asset_bal:
             while True:
-                price_ask, assetQ, coin_total = mean_asks_price(coinB,assetB,client.rOrderBook(symbol,10,'asks'))
-                if assetQ * (1 - spread) > coin_total and lastprice > price_ask:
+                price_ask, asset_qty, coin_total = mean_asks_price(coin_bal,asset_bal,client.rOrderBook(symbol,10,'asks'))
+                if asset_qty * (1 - spread) > coin_total and lastprice > price_ask:
                     # buy asset
-                    fixQ = lot_size(assetQ, stepSize)
-                    response = client.marketBuy(symbol, fixQ)
+                    fix_qty = lot_size(asset_qty, step_size)
+                    response = client.marketBuy(symbol, fix_qty)
                     lastprice = price_ask
                     break
                 sleep(1)
-        elif assetB > coinB:
+        elif asset_bal > coin_bal:
             while True:
-                price_bid, coinQ, asset_total = mean_bids_price(coinB,assetB,client.rOrderBook(symbol,10,'bids'))
-                if coinQ * (1 - spread) > asset_total and lastprice < price_bid:
+                price_bid, coin_qty, asset_total = mean_bids_price(coin_bal,asset_bal,client.rOrderBook(symbol,10,'bids'))
+                if coin_qty * (1 - spread) > asset_total and lastprice < price_bid:
                     # sell asset
-                    fixQ = lot_size(asset_total, stepSize)
-                    response = client.marketSell(symbol, fixQ)
+                    fix_qty = lot_size(asset_total, step_size)
+                    response = client.marketSell(symbol, fix_qty)
                     lastprice = price_bid
                     break
                 sleep(1)
