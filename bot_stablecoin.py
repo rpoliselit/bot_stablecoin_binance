@@ -1,5 +1,6 @@
 from time import sleep, ctime
 from binance_api import binance
+from math import floor
 import keys
 
 def mean_asks_price(coin_qty, asset_qty, asks):
@@ -45,7 +46,6 @@ def get_balance(coin, asset, balance):
     return coin_bal_bin, asset_bal_bin
 
 def truncate(num, decimal=0):
-    from math import floor
     decimal = 10 ** decimal
     return floor(num * decimal) / decimal
 
@@ -61,7 +61,6 @@ def monitor(*args):
 
 # binance client
 client = binance(keys.binance_apikey, keys.binance_secret)
-taker = 0.1 / 100
 
 # currency pair of stable coin
 coin = 'USDT'
@@ -77,10 +76,8 @@ for k in symbols:
                 min_qty = float(j['minQty'])
                 max_qty = float(j['maxQty'])
                 step_size = float(j['stepSize'])
-s
 
-# define spread
-spread = taker * 1.1
+# define lastprice
 lastprice = 1
 
 # automated trade
@@ -89,6 +86,9 @@ while True:
         # check balances
         coin_bal, asset_bal = get_balance(coin, asset, client.rBalances())
         monitor(coin,asset,coin_bal,asset_bal)
+        # gat taker and define spread
+        taker = client.taker()
+        spread = taker * 1.1
         if coin_bal > asset_bal:
             while True:
                 price_ask, asset_qty, coin_total = mean_asks_price(coin_bal,asset_bal,client.rOrderBook(symbol,10,'asks'))

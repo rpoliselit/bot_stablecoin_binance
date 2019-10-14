@@ -44,7 +44,6 @@ class binance:
         url_api = 'https://api.binance.com/api'
         url_public = url_api + '/v1'
         url_private = url_api + '/v3'
-        list1 = ('/ping', '/time', '/exchangeInfo')
         timestamp = int(time.time()*1000)
         recvWindow = 5000
         if private_api == False:
@@ -100,7 +99,7 @@ class binance:
         """
         return self.api_query('/ticker/allPrices')
 
-    def rOrderBook(self, currency_pair, depth=5, field=None):
+    def rOrderBook(self, currency_pair, depth=100, field=None):
         """
         Returns the order book for a given market.
         :currency_pair: The currency pair, e.q. 'LTCBTC'.
@@ -142,8 +141,16 @@ class binance:
 
 
     #2.1-requests GET
-    def bookTicker(self, currency_pair, field=None):
-        params = {'symbol': currency_pair}
+    def bookTicker(self, currency_pair=None, field=None):
+        """
+        Best price and quantity on the order book for a symbol or symbols.
+        :currency_pair (optional): The symbol of a given market, e.q. 'LTCBTC'
+        :field (optional): 'symbol', 'bidPrice', 'bidQty', 'askPrice', and 'askQty'.
+        """
+        if currency_pair is not None:
+            params = {'symbol': currency_pair}
+        else:
+            params = {}
         x = self.api_query('/ticker/bookTicker', params=params, private_api=True)
         if field is not None:
             x = x[field]
@@ -177,6 +184,20 @@ class binance:
         else:
             balance = x
         return balance
+
+    def rTaker(self):
+        """
+        Returns taker commission in percentage. For instance, if commission is of 0.1% the value exhibited is 0.001.
+        """
+        taker = self.aInfo('takerCommission') / 10000
+        return taker
+
+    def rMaker(self):
+        """
+        Returns maker commission in percentage. For instance, if commission is of 0.1% the value exhibited is 0.001.
+        """
+        maker = self.aInfo('takerCommission') / 10000
+        return maker
 
     def orderStatus(self, currency_pair, order_id, orig_client_order_id):
         """
