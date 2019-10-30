@@ -111,16 +111,16 @@ class binance:
             'symbol': currency_pair,
             'limit': depth
         }
-        x = self.api_query('/depth', params=params)
-        if field is not None and field in x:
-            x = x[field]
-            if field == 'asks' or field == 'bids':
-                for elem in x:
+        order_book = self.api_query('/depth', params=params)
+        for key, value in order_book.items():
+            if key in ['asks','bids']:
+                for elem in value:
                     for c, num in enumerate(elem):
                         elem[c] = float(num)
-            else:
-                x = int(x)
-        return x
+        if field is not None and field in order_book:
+            return order_book[field]
+        else:
+            return order_book
 
 
 #2-PRIVATE API METHODS
