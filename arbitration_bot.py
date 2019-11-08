@@ -112,7 +112,7 @@ def automated_trade(coin, asset, client, last_price):
             sleep(1)
 
 def save_trade_history(response, last_price):
-    if response is not None:
+    if response != None:
         data = open('trade_history.txt','a+')
         data.write(f'{response}\n')
         print(f"last price = {last_price:.5f}")
