@@ -1,39 +1,39 @@
 from time import sleep, ctime
 from binance_api import binance
 from math import floor
+from decimal import Decimal
 import keys
 
 def monitor(func):
-    def balances(coin, asset, balance):
-        coin_bal, asset_bal = func(coin, asset, balance)
+    def balances(coins, balance):
+        balances_dict = func(coins, balance)
         print(f"{' bot_stablecoin_binance ':-^35}")
         print(f"{ctime():-^35}")
-        print(f"{coin}: {coin_bal:.8f} {asset}: {asset_bal:.8f}")
-        return coin_bal, asset_bal
+        for coin, balance in balances_dict.items():
+            print(f" {coin:<4}: {balance:>.2f} ")
+        return balances_dict
     return balances
 
 @monitor
-def get_balance(coin, asset, all_balances):
+def get_balance(coins, all_balances):
+    coin_balances = dict()
     for balance in all_balances:
-        if balance['asset'] == coin:
-            coin_balance = float(balance['free'])
-        elif balance['asset'] == asset:
-            asset_balance = float(balance['free'])
-    return coin_balance, asset_balance
+        if balance['asset'] in coins:
+            coin_balances[balance['asset']] = float(balance['free'])
+    return coin_balances
 
 def create_symbol(coin, asset):
     return f'{asset}{coin}'
 
-def find_step_size(symbol, client):
+def find_markets(coins, client):
+    my_markets = []
+    hypthetical_symbols = [create_symbol(coin,asset) for coin in coins for asset in coins]
     all_markets = client.eInfo()['symbols']
     for market in all_markets:
-        if market['symbol'] == symbol:
-            for filter in market['filters']:
-                if filter['filterType'] == 'LOT_SIZE':
-                    # min_qty = float(filter['minQty'])
-                    # max_qty = float(filter['maxQty'])
-                    step_size = float(filter['stepSize'])
-    return step_size
+        real_symbol = market['symbol'] in hypthetical_symbols
+        if real_symbol:
+            my_markets.append(market['symbol'])
+    return tuple(my_markets)
 
 def mean_asks_price(coin_qty, asks):
     asset_qty = 0
@@ -75,57 +75,52 @@ def truncate(num, decimal=0):
     decimal = 10 ** decimal
     return floor(num * decimal) / decimal
 
-def lot_size(asset_qty, step_size):
+def lot_size(asset_qty, step_size=0.01):
+    d = abs(Decimal(str(step_size)).as_tuple().exponent)
     fix_size = asset_qty % step_size
-    return truncate(asset_qty - fix_size, 5)
+    return truncate(asset_qty - fix_size, d)
 
-def automated_trade(coin, asset, client, last_price):
-    coin_bal , asset_bal = get_balance(coin, asset, client.rBalances())
+def automated_trade(coins, client):
+    balances = get_balance(coins, client.rBalances())
     taker = client.rTaker()
-    symbol = create_symbol(coin,asset)
-    step_size = find_step_size(symbol,client)
-    buying_asset = coin_bal > asset_bal
-    selling_asset = coin_bal < asset_bal
-    if buying_asset:
-        while True:
+    coin, balance_qty = max(balances.items())
+    my_markets = find_markets(coins,client)
+    # make purchase or sale
+    for symbol in my_markets:
+        if coin in symbol[3:]:
+            # buy asset
             asks = client.rOrderBook(symbol,100,'asks')
-            ask_price, asset_qty = mean_asks_price(coin_bal,asks)
-            profit = asset_qty * (1 - taker) > coin_bal
-            favorable_price = ask_price < last_price
-            if profit and favorable_price:
-                fix_qty = lot_size(asset_qty, step_size)
-                response = client.marketBuy(symbol, fix_qty)
-                lastprice = ask_price
-                return response, last_price
-            sleep(1)
-    elif selling_asset:
-        while True:
+            ask_price, asset_qty = mean_asks_price(balance_qty,asks)
+            profit = lot_size(asset_qty) * (1 - taker) > lot_size(balance_qty)
+            if profit:
+                lot_qty = lot_size(asset_qty)
+                response = client.marketBuy(symbol,lot_qty)
+                return response
+            print(lot_size(asset_qty), 'buy', profit, lot_size(balance_qty), symbol)
+        elif coin in symbol[:4]:
+            # sell asset
             bids = client.rOrderBook(symbol,100,'bids')
-            bid_price, coin_qty = mean_bids_price(asset_bal,bids)
-            profit = coin_qty * (1 - taker) > asset_bal
-            favorable_price = bid_price > last_price
-            if profit and favorable_price:
-                fix_qty = lot_size(asset_bal, step_size)
-                response = client.marketSell(symbol, fix_qty)
-                lastprice = bid_price
-                return response, last_price
-            sleep(1)
+            bid_price, coin_qty = mean_bids_price(balance_qty,bids)
+            profit = lot_size(coin_qty) * (1 - taker) > lot_size(balance_qty)
+            if profit:
+                lot_qty = lot_size(balance_qty)
+                response = client.marketSell(symbol,lot_qty)
+                return response
+        sleep(1)
 
-def save_trade_history(response, last_price):
+def save_trade_history(response):
     if response != None:
         data = open('trade_history.txt','a+')
         data.write(f'{response}\n')
-        print(f"last price = {last_price:.5f}")
 
 def main():
     client = binance(keys.binance_apikey, keys.binance_secret)
-    coin = 'USDT'
-    asset = 'TUSD'
-    last_price = 1
+    coins = ('USDT','TUSD','PAX','USDC')
     while True:
         try:
-            response, last_price = automated_trade(coin,asset,client,last_price)
-            save_trade_history(response,last_price)
+            response = automated_trade(coins,client)
+            # save_trade_history(response)
+            break
         except KeyboardInterrupt:
             print('\nSTOPED BY USER')
             break

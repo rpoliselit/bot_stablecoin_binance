@@ -1,5 +1,5 @@
 # Stable coin bot
-Automated arbitration of stable coins (TUSD/USDT) on the Binance exchange.
+Automated arbitration of stable coins (TUSD/USDT/PAX/USDC) on the Binance exchange.
 
 ## Installing
 Download this repository, and touch a file keys.py inside it. This file must contains the following script:
