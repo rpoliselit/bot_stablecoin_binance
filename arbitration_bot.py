@@ -99,7 +99,6 @@ def automated_trade(coins, client):
     taker = client.rTaker()
     coin, balance_qty = max(balances.items())
     my_markets = find_markets(coins,client)
-    print(my_markets, coin)
     while True:
         # make purchase or sale
         for symbol in my_markets:
