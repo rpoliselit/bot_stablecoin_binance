@@ -110,9 +110,8 @@ def automated_trade(coins, client):
                 profit = lot_size(asset_qty) * (1 - taker) > lot_size(balance_qty)
                 if profit and ask_price < 1:
                     lot_qty = lot_size(asset_qty)
-                    # response = client.marketBuy(symbol,lot_qty)
-                    diagram(coin,symbol,balance_qty,lot_size(asset_qty) * (1 - taker)) # mudar final para qty da resp
-                    response = 'buy'
+                    response = client.marketBuy(symbol,lot_qty)
+                    diagram(coin,symbol,balance_qty,asset_qty * (1-taker))
                     return response
             elif coin in symbol[:4]:
                 # sell asset
@@ -121,9 +120,8 @@ def automated_trade(coins, client):
                 profit = lot_size(coin_qty) * (1 - taker) > lot_size(balance_qty)
                 if profit and bid_price > 1:
                     lot_qty = lot_size(balance_qty)
-                    # response = client.marketSell(symbol,lot_qty)
-                    diagram(coin,symbol,balance_qty,lot_size(coin_qty) * (1 - taker)) # mudar para a quantidade da resposta
-                    response = 'sell'
+                    response = client.marketSell(symbol,lot_qty)
+                    diagram(coin,symbol,balance_qty,coin_qty * (1-taker))
                     return response
             sleep(1)
 
@@ -139,7 +137,7 @@ def main():
     while True:
         try:
             response = automated_trade(coins,client)
-            # save_trade_history(response)
+            save_trade_history(response)
             break
         except KeyboardInterrupt:
             print('\nSTOPED BY USER')
