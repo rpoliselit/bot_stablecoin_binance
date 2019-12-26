@@ -4,13 +4,17 @@ from math import floor
 from decimal import Decimal
 import keys
 
+def start_msg():
+    print(f"{' bot_stablecoin_binance ':-^35}")
+    print(f"|{ctime():^33}|")
+
 def monitor(func):
     def balances(coins, balance):
         balances_dict = func(coins, balance)
-        print(f"{' bot_stablecoin_binance ':-^35}")
-        print(f"{ctime():-^35}")
+        print(f"{' Wallet balnces ':-^35}")
         for coin, balance in balances_dict.items():
-            print(f" {coin:<4}: {balance:>.2f} ")
+            msg = f'{coin:<4}: {balance:>.8f}'
+            print(f"|{msg:^33}|")
         return balances_dict
     return balances
 
@@ -80,33 +84,48 @@ def lot_size(asset_qty, step_size=0.01):
     fix_size = asset_qty % step_size
     return truncate(asset_qty - fix_size, d)
 
+def diagram(coin, symbol, inital_qty, final_qty):
+    print(f"{' Arbitrage trade ':-^35}")
+    type_str = f"{'>':->10}" if coin in symbol[3:] else f"{'<':-<10}"
+    msg_0 = f"{coin:>4} {type_str} {symbol.replace(coin,''):<4}"
+    msg_1 = f'Profit: {100 * final_qty / inital_qty - 100:.8f}%'
+    msg_2 = ctime()
+    for msg in (msg_0, msg_1, msg_2):
+        print(f"|{msg:^33}|")
+
+
 def automated_trade(coins, client):
     balances = get_balance(coins, client.rBalances())
     taker = client.rTaker()
     coin, balance_qty = max(balances.items())
     my_markets = find_markets(coins,client)
-    # make purchase or sale
-    for symbol in my_markets:
-        if coin in symbol[3:]:
-            # buy asset
-            asks = client.rOrderBook(symbol,100,'asks')
-            ask_price, asset_qty = mean_asks_price(balance_qty,asks)
-            profit = lot_size(asset_qty) * (1 - taker) > lot_size(balance_qty)
-            if profit:
-                lot_qty = lot_size(asset_qty)
-                response = client.marketBuy(symbol,lot_qty)
-                return response
-            print(lot_size(asset_qty), 'buy', profit, lot_size(balance_qty), symbol)
-        elif coin in symbol[:4]:
-            # sell asset
-            bids = client.rOrderBook(symbol,100,'bids')
-            bid_price, coin_qty = mean_bids_price(balance_qty,bids)
-            profit = lot_size(coin_qty) * (1 - taker) > lot_size(balance_qty)
-            if profit:
-                lot_qty = lot_size(balance_qty)
-                response = client.marketSell(symbol,lot_qty)
-                return response
-        sleep(1)
+    print(my_markets, coin)
+    while True:
+        # make purchase or sale
+        for symbol in my_markets:
+            if coin in symbol[3:]:
+                # buy asset
+                asks = client.rOrderBook(symbol,100,'asks')
+                ask_price, asset_qty = mean_asks_price(balance_qty,asks)
+                profit = lot_size(asset_qty) * (1 - taker) > lot_size(balance_qty)
+                if profit and ask_price < 1:
+                    lot_qty = lot_size(asset_qty)
+                    # response = client.marketBuy(symbol,lot_qty)
+                    diagram(coin,symbol,balance_qty,lot_size(asset_qty) * (1 - taker)) # mudar final para qty da resp
+                    response = 'buy'
+                    return response
+            elif coin in symbol[:4]:
+                # sell asset
+                bids = client.rOrderBook(symbol,100,'bids')
+                bid_price, coin_qty = mean_bids_price(balance_qty,bids)
+                profit = lot_size(coin_qty) * (1 - taker) > lot_size(balance_qty)
+                if profit and bid_price > 1:
+                    lot_qty = lot_size(balance_qty)
+                    # response = client.marketSell(symbol,lot_qty)
+                    diagram(coin,symbol,balance_qty,lot_size(coin_qty) * (1 - taker)) # mudar para a quantidade da resposta
+                    response = 'sell'
+                    return response
+            sleep(1)
 
 def save_trade_history(response):
     if response != None:
@@ -116,6 +135,7 @@ def save_trade_history(response):
 def main():
     client = binance(keys.binance_apikey, keys.binance_secret)
     coins = ('USDT','TUSD','PAX','USDC')
+    start_msg()
     while True:
         try:
             response = automated_trade(coins,client)
