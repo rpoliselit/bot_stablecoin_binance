@@ -145,16 +145,26 @@ class binance:
 
 
     #2.1-requests GET
+    def r24hTicker(self, currency_pair=None, field=None):
+        params = {}
+        if currency_pair != None:
+            params = {'symbol' : currency_pair}
+        r24h_ticker = self._api_query('/ticker/24hr', params = params, private_api=True)
+        if field != None:
+            r24h_ticker = r24h_ticker[field]
+            if field not in ('symbol','openTime','closeTime','firstId','lastId','count'):
+                r24h_ticker = float(r24h_ticker)
+        return r24h_ticker
+
     def bookTicker(self, currency_pair=None, field=None):
         """
         Best price and quantity on the order book for a symbol or symbols.
         :currency_pair (optional): The symbol of a given market, e.q. 'LTCBTC'
         :field (optional): 'symbol', 'bidPrice', 'bidQty', 'askPrice', and 'askQty'.
         """
+        params = {}
         if currency_pair != None:
             params = {'symbol': currency_pair}
-        else:
-            params = {}
         book_ticker = self._api_query('/ticker/bookTicker', params=params, private_api=True)
         if field != None:
             book_ticker = book_ticker[field]
@@ -341,7 +351,10 @@ class binance:
         :quantity:
         NOTE: check 'newOrder' method in help.
         """
-        return self.newOrder(currency_pair,'BUY','MARKET', quantity)
+        return self.newOrder(currency_pair=currency_pair,
+                             side='BUY',
+                             type='MARKET',
+                             quantity=quantity)
 
     def marketSell(self, currency_pair, quantity):
         """
@@ -350,7 +363,10 @@ class binance:
         :quantity:
         NOTE: check 'newOrder' method in help.
         """
-        return self.newOrder(currency_pair,'SELL','MARKET', quantity)
+        return self.newOrder(currency_pair=currency_pair,
+                             side='SELL',
+                             type='MARKET',
+                             quantity=quantity)
 
     def stopLossBuy(self, currency_pair, quantity, stopPrice):
         """
@@ -360,7 +376,11 @@ class binance:
         :stopPrice:
         NOTE: check 'newOrder' method in help.
         """
-        return self.newOrder(currency_pair,'BUY','STOP_LOSS',quantity,stopPrice)
+        return self.newOrder(currency_pair=currency_pair,
+                             side='BUY',
+                             type='STOP_LOSS',
+                             quantity=quantity,
+                             stopPrice=stopPrice)
 
     def stopLossSell(self, currency_pair, quantity, stopPrice):
         """
@@ -370,7 +390,11 @@ class binance:
         :stopPrice:
         NOTE: check 'newOrder' method in help.
         """
-        return self.newOrder(currency_pair,'SELL','STOP_LOSS',quantity,stopPrice)
+        return self.newOrder(currency_pair=currency_pair,
+                        side='SELL',
+                        type='STOP_LOSS',
+                        quantity=quantity,
+                        stopPrice=stopPrice)
 
 
     #2.3-requests DELETE
@@ -379,7 +403,10 @@ class binance:
         Cancel an active order.
         NOTE: check 'order' method in help.
         """
-        return self._order(currency_pair, order_id, orig_client_order_id, request_type='DELETE')
+        return self._order(request_type='DELETE',
+                           currency_pair=currency_pair,
+                           order_id=order_id,
+                           orig_client_order_id=orig_client_order_id)
 
 
     #2.4-requests PUT
